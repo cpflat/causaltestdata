@@ -19,3 +19,14 @@ class TestVariable(unittest.TestCase):
         defaults = {}
 
         df = variable.generate_all(g, defaults)
+
+    def test_tsevent(self):
+        g = nx.DiGraph()
+        g.add_nodes_from([1, 2, 3, 4, 5])
+        g.add_edge(1, 2, weight=0.3)
+        g.add_edge(2, 3, weight=0.5)
+        g.add_edge(4, 3, weight=0.1)
+        g.add_edge(5, 4, weight=0.1)
+        defaults = {"default_type": "tsevent"}
+
+        df = variable.generate_all(g, defaults)

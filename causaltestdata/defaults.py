@@ -16,9 +16,21 @@ def default_setup(g, defaults):
 
     if "variable_index" not in defaults:
         if "tsevent" in s_type:
-            dt_base = datetime.datetime(2112, 9, 3)
-            dt_interval = datetime.timedelta(minutes=1)
-            index = [dt_base + dt_interval * diff for diff in range(24 * 60)]
+            if "dt_range" in defaults:
+                dt_range = defaults["dt_range"]
+            else:
+                dt_range = (datetime.datetime(2112, 9, 3),
+                            datetime.datetime(2112, 9, 4))
+                defaults["dt_range"] = dt_range
+            if "dt_interval" in defaults:
+                dt_interval = defaults["dt_interval"]
+            else:
+                dt_interval = datetime.timedelta(minutes=1)
+                defaults["dt_interval"] = dt_interval
+            if "delay" not in defaults:
+                defaults["delay"] = datetime.timedelta(0)
+            n_bins = int((dt_range[1] - dt_range[0]).total_seconds() / dt_interval.total_seconds())
+            index = [dt_range[0] + dt_interval * diff for diff in range(n_bins)]
         else:
             index = list(range(1000))
         defaults["variable_index"] = index
@@ -27,8 +39,8 @@ def default_setup(g, defaults):
         defaults.update({"gaussian_scale": 1,
                          "gaussian_loc": 0})
     if "binary" in s_type:
-        defaults.update({"prob": 0.5})
+        defaults.update({"binary_prob": 0.5})
     if "countable" in s_type or "tsevent" in s_type:
-        defaults.update({"lambd": 0.1})
+        defaults.update({"poisson_lambd": 0.1})
 
     return defaults

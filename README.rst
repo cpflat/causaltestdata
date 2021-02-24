@@ -2,9 +2,9 @@
 Causaltestdata
 ##############
 
-Causaltestdata is a Python toolkit to generate pseudo dataset for causal inference.
+Causaltestdata is a Python toolkit to generate pseudo dataset for causal inference and causal discovery.
 
-This toolkit assumes all causality is linear (i.e., using Structural equation modelling).
+This toolkit assumes all causality is linear in the potential model (i.e., using Structural equation modelling).
 The input model can be specified as a DAG in networkx graph format,
 and the generated data is in pandas DataFrame format.
 
