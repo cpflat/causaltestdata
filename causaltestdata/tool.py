@@ -2,7 +2,21 @@ import datetime
 import networkx as nx
 
 
-def visual_graph(g, defaults):
+def labeled_graph(g, weight_key="weight"):
+    """Generate labeled networkx.DiGraph with edge weights."""
+    graph = nx.DiGraph()
+    graph.add_nodes_from(g.nodes())
+
+    for (edge_src, edge_dst, edge_data) in g.edges(data=True):
+        weight = edge_data[weight_key]
+        label = str(weight)
+        graph.add_edge(edge_src, edge_dst, label=label)
+
+    return graph
+
+
+def visual_model(g, defaults):
+    """Generate labeled networkx.DiGraph of causaltestdata model."""
 
     def _get_spec(data, key, default_value=None):
         if key in data:
@@ -28,6 +42,6 @@ def visual_graph(g, defaults):
 
 
 def output_graph(g, defaults, output):
-    graph = visual_graph(g, defaults)
+    graph = visual_model(g, defaults)
     ag = nx.nx_agraph.to_agraph(graph)
     ag.draw(output, prog='circo')

@@ -66,9 +66,9 @@ class Variable(object):
 
 class BinaryVariable(Variable):
 
-    def _rand(self):
-        prob = self._get_spec("binary_prob", 0.5)
-        return np.random.rand() < prob
+    #def _rand(self):
+    #    prob = self._get_spec("binary_prob", 0.5)
+    #    return np.random.rand() < prob
 
     def _binary_error(self):
         msg = "more than 1.0 total effect on binary variable {0}".format(
@@ -83,7 +83,7 @@ class BinaryVariable(Variable):
         rand_weight = 1 - sum_effect_weight
 
         # calculate probability vector
-        a_prob = rand_weight * self._rand()
+        a_prob = rand_weight * self._get_spec("binary_prob", 0.5)
         for edge_data, variable in effects:
             assert variable.values is not None
             weight = edge_data["weight"]
