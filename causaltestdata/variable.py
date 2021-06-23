@@ -12,6 +12,10 @@ TYPE_TIMESERIES_EVENT = "tsevent"
 
 
 class Variable(object):
+    """Continuous Variable that follows Linear model.
+
+    Causal effects simply affects the values additively.
+    """
 
     def __init__(self, node_id, node_data, index, defaults, observable=True):
         self._node_id = node_id
@@ -39,8 +43,17 @@ class Variable(object):
             return default_value
 
     def _rand(self):
-        # TODO custoized random distribution
-        return self._rand_default()
+        rand_type = self._get_spec("noise_type", None)
+        if rand_type is None:
+            return self._rand_default()
+        elif rand_type == "gaussian":
+            return self._rand_gauss()
+        elif rand_type == "laplace":
+            return self._rand_laplace()
+        elif rand_type == "uniform":
+            return self._rand_uniform()
+        elif rand_type == "poisson":
+            return self._rand_poisson()
 
     def _rand_default(self):
         return self._rand_gauss()
@@ -50,12 +63,23 @@ class Variable(object):
         loc = self._get_spec("gaussian_loc", 0)
         return np.random.normal(loc, scale, self._size)
 
+    def _rand_laplace(self):
+        scale = self._get_spec("laplace_scale", 1)
+        loc = self._get_spec("laplace_loc", 0)
+        return np.random.laplace(loc, scale, self._size)
+
+    def _rand_uniform(self):
+        umin = self._get_spec("uniform_min", 0)
+        umax = self._get_spec("uniform_max", 1)
+        return np.random.uniform(umin, umax, self._size)
+
     def _rand_poisson(self):
         lam = self._get_spec("poisson_lambd", 10)
         return np.random.poisson(lam, self._size)
 
     def generate(self, effects):
-        val = self._rand()
+        intercept = self._get_spec("intercept", 0)
+        val = intercept + self._rand()
         for edge_data, variable in effects:
             assert variable.values is not None
             weight = edge_data["weight"]
@@ -65,33 +89,31 @@ class Variable(object):
 
 
 class BinaryVariable(Variable):
+    """Binary Variable that follows Logistic model.
 
-    #def _rand(self):
-    #    prob = self._get_spec("binary_prob", 0.5)
-    #    return np.random.rand() < prob
+    The values are always 0 or 1.
+    If a node variable has no parents, the probability of the node follows Bernoulli distribution.
+    If a node variable has some parents, the causal effect follows logistic distribution.
+    """
 
-    def _binary_error(self):
-        msg = "more than 1.0 total effect on binary variable {0}".format(
-            self._node_id)
-        raise ValueError(msg)
+    @staticmethod
+    def _sigmoid(x, a=1):
+        return 1 / (1 + np.exp(-a * x))
 
     def generate(self, effects):
-        # On binary variable, total effect + random factor must be always 1.0
-        sum_effect_weight = sum(edge["weight"] for edge, _ in effects)
-        if sum_effect_weight > 1:
-            self._binary_error()
-        rand_weight = 1 - sum_effect_weight
-
-        # calculate probability vector
-        a_prob = rand_weight * self._get_spec("binary_prob", 0.5)
-        for edge_data, variable in effects:
-            assert variable.values is not None
-            weight = edge_data["weight"]
-            a_prob += weight * variable.values
-
-        # 1 if rand is smaller than probability vector (0 < rand <= 1)
-        # else 0
-        self._values = (np.random.rand(self._size) < a_prob).astype(int)
+        if len(effects) == 0:
+            # no effect -> Bernoulli
+            prob = self._get_spec("binary_prob", 0.5)
+            self._values = np.random.binomial(1, prob, self._size)
+        else:
+            # some effect -> Logistic model
+            wsum = np.full(self._size, self._get_spec("binary_prob", 0.5))
+            for edge_data, variable in effects:
+                assert variable.values is not None
+                weight = edge_data["weight"]
+                wsum += weight * variable.values
+            probs = self._sigmoid(wsum)
+            self._values = np.random.binomial(1, probs)
         return self._values
 
 
@@ -106,15 +128,18 @@ class CountableVariable(Variable):
         for edge_data, variable in effects:
             assert variable.values is not None
             weight = edge_data["weight"]
-            # e.g. effect of weight 0.5 from node of value 3
-            # means 3 trials for 50% chance of increasing 1
-            # -> binomial distribution
             val += np.random.binomial(variable.values, weight)
         self._values = val
         return val
 
 
 class TimeSeriesEventVariable(Variable):
+    """Time-series event variable that follows Marcov model.
+
+    The values are positive integer.
+    Causal effects are considered as transition probability of events.
+    Random events appears under Poisson functions.
+    """
 
     def __init__(self, node_id, node_data, index, defaults, observable=True):
         super().__init__(node_id, node_data, index, defaults, observable)
@@ -146,7 +171,6 @@ class TimeSeriesEventVariable(Variable):
             tmp_dt = self._rand_next_exp(tmp_dt, lambd)
 
     def _rand_ts(self):
-        # TODO custoized random distribution
         return list(self._rand_exp_interval())
 
     def _delay(self, dt):

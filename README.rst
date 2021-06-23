@@ -13,3 +13,8 @@ and the generated data is in pandas DataFrame format.
 * Author: `Satoru Kobayashi <https://github.com/cpflat/>`_
 * License: `BSD-3-Clause <https://opensource.org/licenses/BSD-3-Clause>`_
 
+
+How to use?
+###########
+
+See notebooks in :code:`tutorial` directory.

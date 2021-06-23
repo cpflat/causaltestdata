@@ -36,8 +36,7 @@ def default_setup(g, defaults):
         defaults["variable_index"] = index
 
     if "variable" in s_type:
-        defaults.update({"gaussian_scale": 1,
-                         "gaussian_loc": 0})
+        defaults.update({"variable_dist": "gaussian"})
     if "binary" in s_type:
         defaults.update({"binary_prob": 0.5})
     if "countable" in s_type or "tsevent" in s_type:
